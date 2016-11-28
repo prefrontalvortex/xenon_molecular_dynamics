@@ -1,0 +1,7 @@
+mol
+*.o
+*.so
+*.run
+*.out
+
+.idea/*

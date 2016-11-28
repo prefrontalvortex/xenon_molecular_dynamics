@@ -5,6 +5,13 @@
 #include "math.h"
 #include "string.h"
 
+#define X0 0
+#define Y0 1
+#define Z0 2
+#define X1 3
+#define Y1 4
+#define Z1 5
+
 #define ROW 45
 #define COL 91
 #define X_FACTOR 0.555e-10
@@ -43,12 +50,12 @@ int main(int argc, char **argv) {
     cout << "stop-time [s] = ";
     cin >> max;
 
-    double equil[FORCES] = {0., 0.};
-    double G_Newton[FORCES] = {-3.18e-132, 3.35e-76};
+    double equil[FORCES] = {0., 0.}; // Not used here, spring equilib for springy forces
+    double G_Newton[FORCES] = {-3.18e-132, 3.35e-76}; // Repulsive and attractive terms in LJ for Xenon
     double powerLaw[FORCES] = {-13., -7.};
     int i, j, k, q;
     double cost, sint, phi, sinp, cosp, vx, vy, vz, vNorm;
-    double rMin[BODIES][6];
+    double rMin[BODIES][6]; // Find distance of 1 Xe atom to its nearest neighbors
     for (i = 0; i < BODIES; i++) {
         rMin[i][0] = MAX;
         rMin[i][1] = MAX;
@@ -57,28 +64,30 @@ int main(int argc, char **argv) {
         rMin[i][4] = MAX;
         rMin[i][5] = MAX;
         mass[i] = 2.18e-25; //in kg (Xe)
+        // Produce a random position in the box, i over bodies, j over dimensions (pretty much everywhere)
         for (j = 0; j < DIM; j++) { r1[i][j] = (2. * rand_uniform() - 1.) * MAX; }
-        cost = 1. - 2. * rand_uniform();
+        cost = 1. - 2. * rand_uniform();            // Random trajectory
         sint = sqrt((1. - cost) * (1. + cost));
         phi = 2. * M_PI * rand_uniform();
         sinp = sin(phi);
         cosp = cos(phi);
-        vx = sint * cosp;
+        vx = sint * cosp;                           // Random starting speed
         vy = sint * sinp;
         vz = cost;
         vNorm = rand_uniform() * 500.; // meters per sec.
         //vNorm = VonNeumann ( 4e1, 5e2, 0., 15e3 );
-        v2[i][0] = vx * vNorm;
-        v2[i][1] = vy * vNorm;
-        v2[i][2] = vz * vNorm;
+        v2[i][X0] = vx * vNorm;
+        v2[i][Y0] = vy * vNorm;
+        v2[i][Z0] = vz * vNorm;
     }
 
     double radius, cosT, sinT, cosP, sinP, delta[2], flip[DIM];
     double rAvg = 0.;
+    // Loop over all the atoms, O(n**2)
     for (i = 0; i < BODIES; i++) {
-        a1[i][0] = 0.;
-        a1[i][1] = 0.;
-        a1[i][2] = 0.;
+        a1[i][X0] = 0.;
+        a1[i][Y0] = 0.;
+        a1[i][Z0] = 0.;
         for (j = 0; j < BODIES; j++) {
             radius = 0.;
             for (k = 0; k < DIM; k++) {
@@ -366,6 +375,9 @@ void ClearTheScreen() {
 } //hopefully this func works for all OSes!!
 
 double VonNeumann(double xMin, double xMax, double yMin, double yMax) {
+    /* Method for integration and random sampling. Using this for randomly sampling a Maxwellian distribution
+     * Samples some random normal velocity
+     */
 
     double xTry = xMin + (xMax - xMin) * rand_uniform();
     double yTry = yMin + (yMax - yMin) * rand_uniform();

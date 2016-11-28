@@ -34,8 +34,6 @@ void ClearTheScreen();
 
 double VonNeumann(double xMin, double xMax, double yMin, double yMax);
 
-//using namespace std;
-
 int main(int argc, char **argv) {
 
     const long BODIES =
@@ -49,11 +47,11 @@ int main(int argc, char **argv) {
     dt = 1e-12;
     max = 1e-10;
     if (argc > 1) {
-        printf("\ntime_step [s] = ");
+        fprintf(stderr, "\ntime_step [s] = ");
         fscanf(stdin,"%le", &dt);
-        printf("\nstop-time [s] = ");
+        fprintf(stderr, "\nstop-time [s] = ");
         fscanf(stdin,"%le", &max);
-        printf("\n%le %le\n", dt, max );
+        fprintf(stderr, "\n%le %le\n", dt, max );
     }
 
 

@@ -1,7 +1,5 @@
 #include "stdio.h"
 #include "stdlib.h"
-#include <fstream>
-#include <iostream>
 #include "math.h"
 #include "string.h"
 
@@ -27,6 +25,9 @@
 #define DIM 3
 #define FORCES 2
 
+#define PRINTTABLE
+
+
 double rand_uniform();
 
 void ClearTheScreen();
@@ -45,11 +46,16 @@ int main(int argc, char **argv) {
     int coord[BODIES][DIM];
     double Norms[BODIES];
 
-    printf("\ntime_step [s] = ");
-    fscanf(stdin,"%lf", &dt);
-    printf("\nstop-time [s] = ");
-    fscanf(stdin,"%lf", &max);
-    printf("\n%ld %ld\n", dt, max );
+    dt = 1e-12;
+    max = 1e-10;
+    if (argc > 1) {
+        printf("\ntime_step [s] = ");
+        fscanf(stdin,"%le", &dt);
+        printf("\nstop-time [s] = ");
+        fscanf(stdin,"%le", &max);
+        printf("\n%le %le\n", dt, max );
+    }
+
 
     double equil[FORCES] = {0., 0.}; // Not used here, spring equilib for springy forces
     double G_Newton[FORCES] = {-3.18e-132, 3.35e-76}; // Repulsive and attractive terms in LJ for Xenon
@@ -238,7 +244,7 @@ int main(int argc, char **argv) {
                         fabs(r1[j][2]) < MAX)
                         rMin[i][5] = radius;
                     if (!radius || radius < MIN || radius > 1e100 * MAX) {
-                        cout << radius << endl;
+                        printf("%lf\n", radius);
                         return -1;
                     } // CRASH!
                     for (q = 0; q < FORCES; q++) {
@@ -258,7 +264,7 @@ int main(int argc, char **argv) {
 
         double aAvg = 0.;
         double aNorm = 0.;
-        bool out;
+        int out;
         long ext = 0;
         double vAvg = 0.;
         vNorm = 0.;
@@ -289,7 +295,7 @@ int main(int argc, char **argv) {
                 rAvg += rMin[i][5];
                 counter++;
             }
-            out = false;
+            out = 0;
             for (j = 0; j < DIM; j++) {
                 v2[i][j] += a1[i][j] * dt;
                 if (v2[i][j] > 295.) v2[i][j] = 295.;
@@ -297,7 +303,7 @@ int main(int argc, char **argv) {
                 r1[i][j] += 0.5 * v2[i][j] * dt;
                 if (r1[i][j] > MAX || r1[i][j] < -MAX) {
                     if (!out) ext++;
-                    out = true;
+                    out = 1;
                 }
             }
             aNorm = sqrt(pow(a1[i][0], 2.) + pow(a1[i][1], 2.) + pow(a1[i][2], 2.));
@@ -341,10 +347,11 @@ int main(int argc, char **argv) {
           cout << endl;
         }*/ //draw the new grid to the screen by row
 
+#ifdef PRINTTABLE
         if (!time) printf("time [s]\tseparation [m]\tmean speed [m/s]\n");
         printf("%e\t%e\t%e\n", time + dt, rAvg, vAvg);
         //printf("%e,%f %f,%f %f,%f\t%e,%f %f,%f %f,%f\t%e\n",r1[0][0],r1[0][1],v2[0][0],v2[0][1],a1[0][0],a1[0][1],r1[1][0],r1[1][1],v2[1][0],v2[1][1],a1[1][0],a1[1][1],time);
-
+#endif
         time += dt;
         for (i = 0; i < BODIES; i++) {
             for (j = 0; j < DIM; j++) {
@@ -356,8 +363,8 @@ int main(int argc, char **argv) {
 
     }
 
-    cout << "Speeds" << endl;
-    for (i = 0; i < BODIES; i++) cout << Norms[i] << endl;
+    printf("Speeds\n");
+    for (i = 0; i < BODIES; i++) printf("%lf\n", Norms[i]);
     return 1;
 
 }

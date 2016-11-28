@@ -27,6 +27,8 @@
 #define DIM 3
 #define FORCES 2
 
+//#define PRINTTABLE
+
 double rand_uniform();
 
 void ClearTheScreen();
@@ -45,10 +47,16 @@ int main(int argc, char **argv) {
     int coord[BODIES][DIM];
     double Norms[BODIES];
 
-    cout << "time_step [s] = ";
-    cin >> dt;
-    cout << "stop-time [s] = ";
-    cin >> max;
+    dt = 1e-12;
+    max = 1e-10;
+    if (argc > 1) {
+        cout << "time_step [s] = ";
+        cin >> dt;
+        cout << "stop-time [s] = ";
+        cin >> max;
+        printf("\n%le %le\n", dt, max );
+    }
+
 
     double equil[FORCES] = {0., 0.}; // Not used here, spring equilib for springy forces
     double G_Newton[FORCES] = {-3.18e-132, 3.35e-76}; // Repulsive and attractive terms in LJ for Xenon
@@ -340,10 +348,11 @@ int main(int argc, char **argv) {
           cout << endl;
         }*/ //draw the new grid to the screen by row
 
+#ifdef PRINTTABLE
         if (!time) printf("time [s]\tseparation [m]\tmean speed [m/s]\n");
         printf("%e\t%e\t%e\n", time + dt, rAvg, vAvg);
         //printf("%e,%f %f,%f %f,%f\t%e,%f %f,%f %f,%f\t%e\n",r1[0][0],r1[0][1],v2[0][0],v2[0][1],a1[0][0],a1[0][1],r1[1][0],r1[1][1],v2[1][0],v2[1][1],a1[1][0],a1[1][1],time);
-
+#endif
         time += dt;
         for (i = 0; i < BODIES; i++) {
             for (j = 0; j < DIM; j++) {

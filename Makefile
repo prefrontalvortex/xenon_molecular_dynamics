@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=-Wall -pg
 # Library flag is important!
-LDFLAGS=-pthread -pg
+LDFLAGS=-pthread -pg -lm
 OFLAGS=-O3
 TARGET=mol
 SOURCES=main.cpp
@@ -17,7 +17,7 @@ fast: $(OBJS)
 	$(CC) -o $(TARGET) $(OFLAGS) $(CFLAGS) $(OBJS) $(LDFLAGS)
 
 fastc: $(OBJS)
-	gcc -o mol_c $(OFLAGS) $(CFLAGS) $(OBJS) $(LDFLAGS)
+	gcc main.c $(OFLAGS) $(CFLAGS) $(LDFLAGS) -o mol_c
 
 $(TARGET): $(OBJS)
 	$(CC) -o $(TARGET) $(CFLAGS) $(OBJS) $(LDFLAGS)

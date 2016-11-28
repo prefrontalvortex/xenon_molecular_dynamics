@@ -3,5 +3,5 @@ mol
 *.so
 *.run
 *.out
-
+out/*
 .idea/*

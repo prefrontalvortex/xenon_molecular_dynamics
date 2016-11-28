@@ -33,22 +33,23 @@ void ClearTheScreen();
 
 double VonNeumann(double xMin, double xMax, double yMin, double yMax);
 
-using namespace std;
+//using namespace std;
 
 int main(int argc, char **argv) {
 
     const long BODIES =
-            long(floor((DENSITY / MOLAR_M) * AVO_NUM * pow(1e2, 3.) * pow(2. * MAX, 3.) + 0.5));
+        (long)(floor((DENSITY / MOLAR_M) * AVO_NUM * pow(1e2, 3.) * pow(2. * MAX, 3.) + 0.5));
     double r1[BODIES][DIM], a1[BODIES][DIM], v2[BODIES][DIM];
     double del, dt, max, mass[BODIES];
     int grid[ROW][COL];
     int coord[BODIES][DIM];
     double Norms[BODIES];
 
-    cout << "time_step [s] = ";
-    cin >> dt;
-    cout << "stop-time [s] = ";
-    cin >> max;
+    printf("\ntime_step [s] = ");
+    fscanf(stdin,"%lf", &dt);
+    printf("\nstop-time [s] = ");
+    fscanf(stdin,"%lf", &max);
+    printf("\n%ld %ld\n", dt, max );
 
     double equil[FORCES] = {0., 0.}; // Not used here, spring equilib for springy forces
     double G_Newton[FORCES] = {-3.18e-132, 3.35e-76}; // Repulsive and attractive terms in LJ for Xenon
@@ -261,7 +262,7 @@ int main(int argc, char **argv) {
         long ext = 0;
         double vAvg = 0.;
         vNorm = 0.;
-        aAvg /= double(BODIES);
+        aAvg /= (double) BODIES;
         counter = 0;
         for (i = 0; i < BODIES; i++) {
             if (rMin[i][0] != MAX) {
@@ -319,15 +320,15 @@ int main(int argc, char **argv) {
                 v2[i][1] = vy * vNorm;
                 v2[i][2] = vz * vNorm;
             } //vAvg += vNorm; Norms[i]=vNorm;
-            coord[i][0] = int(floor((r1[i][0] / X_FACTOR) + 0.5)) + int(floor(double(COL) / 2.));
-            coord[i][1] = -int(floor((r1[i][1] / Y_FACTOR) + 0.5)) + int(floor(double(ROW) / 2.));
+            coord[i][0] = (int)(floor((r1[i][0] / X_FACTOR) + 0.5)) + (int)(floor((double)(COL) / 2.));
+            coord[i][1] = -(int)(floor((r1[i][1] / Y_FACTOR) + 0.5)) + (int)(floor((double)(ROW) / 2.));
             double signZ;
             if (r1[i][2] != 0.) signZ = fabs(r1[i][2]) / r1[i][2]; else signZ = 1.;
             if (coord[i][0] < COL && coord[i][1] < ROW && coord[i][0] >= 0 && coord[i][1] >= 0)
                 grid[coord[i][1]][coord[i][0]] = (i + 1) * signZ;
         }
-        vAvg /= double(BODIES);
-        rAvg /= double(counter); //cout << double(ext)/double(BODIES) << endl;
+        vAvg /= (double)(BODIES);
+        rAvg /= (double)(counter); //cout << double(ext)/double(BODIES) << endl;
 
         //system("sleep 0.1");
         /*ClearTheScreen();

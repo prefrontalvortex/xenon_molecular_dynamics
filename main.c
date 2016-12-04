@@ -258,10 +258,10 @@ int main(int argc, char **argv) {
                 } else { sinP = 1.; }
                 cosT = (r1[j][0] - r1[i][0]) / sqrt(pow(r1[i][0] - r1[j][0], 2.) + pow(r1[i][1] - r1[j][1], 2.));
                 sinT = (r1[j][1] - r1[i][1]) / sqrt(pow(r1[i][0] - r1[j][0], 2.) + pow(r1[i][1] - r1[j][1], 2.));
-                if (r1[i][0] == r1[j][0] && r1[i][1] == r1[j][1]) {
-                    cosT = 1.0;
-                    sinT = 0.0;
-                }
+//                if (r1[i][0] == r1[j][0] && r1[i][1] == r1[j][1]) {
+//                    cosT = 1.0;
+//                    sinT = 0.0;
+//                }
                 // calculate inter-atom distance.
                 if (i != j) {
                     if (radius < rMin[i][0] && (r1[i][X0] - r1[j][0]) > 0. && fabs(r1[i][X0]) < MAX &&

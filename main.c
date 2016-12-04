@@ -53,9 +53,9 @@ void ClearTheScreen();
 double VonNeumann(double xMin, double xMax, double yMin, double yMax);
 
 int main(int argc, char **argv) {
-
+    stopwatch_t timer_iter, timer_init;
 //    time_t now;
-
+    startTimer(&timer_init);
     const long BODIES_CALC =
         (long)(floor((DENSITY / MOLAR_M) * AVO_NUM * pow(1e2, 3.) * pow(2. * MAX, 3.) + 0.5));
     const long BODIES = BODIES_CALC;
@@ -66,12 +66,12 @@ int main(int argc, char **argv) {
     double cost, sint, phi, sinp, cosp, vx, vy, vz, vNorm;
     double rMin[BODIES][6]; // Find distance of 1 Xe atom to its nearest neighbors
 
-    double r1[BODIES][DIM]; // POSITION
-    double a1[BODIES][DIM]; // ACCELERATION
-    double v2[BODIES][DIM]; // VELOCITY -  all 3 get overloaded a lot for initial, midpoint, final value
+    double **r1 = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // POSITION
+    double **a1 = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // ACCELERATION
+    double **v2 = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // VELOCITY -  all 3 get overloaded a lot for initial, midpoint, final value
     double del, dt, max, mass[BODIES];
-    int grid[ROW][COL];
-    int coord[BODIES][DIM];
+//    int grid[ROW][COL];
+//    int coord[BODIES][DIM];
     double Norms[BODIES];
 
     const int GRAV_SIM = (G_Newton[0] == 6.673889e-11)? 1 : 0;
@@ -197,8 +197,8 @@ int main(int argc, char **argv) {
         }
         //cout << rMin[i][0] << "\t" << rMin[i][1] << "\t" << rMin[i][2] << "\t" << rMin[i][3] << "\t" << rMin[i][4] << "\t" << rMin[i][5] << endl;
     } //cout << counter << " " << rAvg/double(counter) << endl;
-
-    startTimer();
+    double initialization_time = getElaspedTime(&timer_init);
+    startTimer(&timer_iter);
     long iterations = 0;
     while (time < max) {  //// ============================================================= BIG BOMBAD ITERATION LOOP
         //dt = del * pow(radius[0][1],7.); // Attempt at dynamic iteration step
@@ -400,7 +400,7 @@ int main(int argc, char **argv) {
         printf("%e\t%e\t%e\n", time + dt, rAvg, vAvg);
         //printf("%e,%f %f,%f %f,%f\t%e,%f %f,%f %f,%f\t%e\n",r1[0][0],r1[0][1],v2[0][0],v2[0][1],a1[0][0],a1[0][1],r1[1][0],r1[1][1],v2[1][0],v2[1][1],a1[1][0],a1[1][1],time);
 #endif
-        // Wrap around
+        // Wrap around - can modify this to 'eliminate' one atom and add a random new one
         for (i = 0; i < BODIES; i++) { // ==== LINEAR LOOP (small)
             for (j = 0; j < DIM; j++) {
                 if (r1[i][j] > MAX) r1[i][j] = -MAX + (r1[i][j] - MAX);
@@ -414,7 +414,9 @@ int main(int argc, char **argv) {
 
 
     for (i = 0; i < BODIES; i++) printf("%lf\n", Norms[i]);
-    double elapsed = getElaspedTime();
+    double elapsed = getElaspedTime(&timer_iter);
+    fprintf(stderr, "Number of iterations: %ld\n", iterations);
+    fprintf (stderr, "Initialization seconds: %.3lf\n", initialization_time);
     fprintf (stderr, "Elapsed seconds: %.3lf\n", elapsed);
     fprintf (stderr, "Iterations per second: %.2lf\n", (double) iterations / (elapsed));
     return EXIT_SUCCESS;

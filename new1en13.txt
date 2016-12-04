@@ -1,0 +1,40 @@
+
+time_step [s] = 
+stop-time [s] = 
+1.000000e-13 1.000000e-11
+Number of iterations: 100
+Initialization seconds: 1.733
+Elapsed seconds: 9.723
+Iterations per second: 10.29
+
+time_step [s] = 
+stop-time [s] = 
+1.000000e-13 1.000000e-11
+Number of iterations: 100
+Initialization seconds: 1.652
+Elapsed seconds: 9.497
+Iterations per second: 10.53
+
+time_step [s] = 
+stop-time [s] = 
+1.000000e-13 1.000000e-11
+Number of iterations: 100
+Initialization seconds: 1.653
+Elapsed seconds: 9.665
+Iterations per second: 10.35
+
+time_step [s] = 
+stop-time [s] = 
+1.000000e-13 1.000000e-11
+Number of iterations: 100
+Initialization seconds: 1.636
+Elapsed seconds: 11.641
+Iterations per second: 8.59
+
+time_step [s] = 
+stop-time [s] = 
+1.000000e-13 1.000000e-11
+Number of iterations: 100
+Initialization seconds: 1.675
+Elapsed seconds: 9.991
+Iterations per second: 10.01

@@ -1,0 +1,21 @@
+
+time_step [s] = 
+stop-time [s] = 
+1.000000e-13 1.000000e-11
+Number of iterations: 100
+Elapsed seconds: 9.359
+Iterations per second: 10.69
+
+time_step [s] = 
+stop-time [s] = 
+1.000000e-13 1.000000e-11
+Number of iterations: 100
+Elapsed seconds: 9.258
+Iterations per second: 10.80
+
+time_step [s] = 
+stop-time [s] = 
+1.000000e-13 1.000000e-11
+Number of iterations: 100
+Elapsed seconds: 9.240
+Iterations per second: 10.82

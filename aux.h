@@ -16,6 +16,7 @@ typedef struct _stopwatch {
 void startTimer(stopwatch_t *stopwatch);
 void endTimer(stopwatch_t *stopwatch);
 double getElaspedTime(stopwatch_t *stopwatch);
+double getElaspedns(stopwatch_t *stopwatch);
 
 //void startTimer();
 //void endTimer();

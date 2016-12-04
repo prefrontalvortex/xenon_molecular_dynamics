@@ -55,7 +55,7 @@ double VonNeumann(double xMin, double xMax, double yMin, double yMax);
 int main(int argc, char **argv) {
     stopwatch_t timer_iter, timer_init;
 //    time_t now;
-    startTimer(&timer_init);
+
     const long BODIES_CALC =
         (long)(floor((DENSITY / MOLAR_M) * AVO_NUM * pow(1e2, 3.) * pow(2. * MAX, 3.) + 0.5));
     const long BODIES = BODIES_CALC;
@@ -70,6 +70,8 @@ int main(int argc, char **argv) {
     double **a1 = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // ACCELERATION
     double **v2 = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // VELOCITY -  all 3 get overloaded a lot for initial, midpoint, final value
     double del, dt, max, mass[BODIES];
+
+
 //    int grid[ROW][COL];
 //    int coord[BODIES][DIM];
     double Norms[BODIES];
@@ -85,8 +87,12 @@ int main(int argc, char **argv) {
         fprintf(stderr, "\n%le %le\n", dt, max );
     }
 
+    int numCycles = (int) (max / dt + 1);
+    // buffer for printout and time for benchmarking
+    double **log_data_buffer = new_2d_double_array(numCycles+1, 3);
+    double **log_time_buffer = new_2d_double_array(numCycles+1, 3);
 
-
+    startTimer(&timer_init);
     for (i = 0; i < BODIES; i++) {                  // Distribute the bodies in the chamber with random velocities
         rMin[i][N0] = MAX;
         rMin[i][N1] = MAX;
@@ -197,6 +203,7 @@ int main(int argc, char **argv) {
         }
         //cout << rMin[i][0] << "\t" << rMin[i][1] << "\t" << rMin[i][2] << "\t" << rMin[i][3] << "\t" << rMin[i][4] << "\t" << rMin[i][5] << endl;
     } //cout << counter << " " << rAvg/double(counter) << endl;
+    fprintf(stdout, "time [s]\tseparation [m]\tmean speed [m/s]\n");
     double initialization_time = getElaspedTime(&timer_init);
     startTimer(&timer_iter);
     long iterations = 0;
@@ -209,7 +216,7 @@ int main(int argc, char **argv) {
             }
         } //end of the initial grid setup
 #endif
-
+        log_time_buffer[iterations][0] = getElaspedns(&timer_init);
         for (i = 0; i < BODIES; i++) {
             rMin[i][0] = MAX;
             rMin[i][1] = MAX;
@@ -296,6 +303,7 @@ int main(int argc, char **argv) {
                 } //complete acceleration
             } //loop over masses
         } //// loop over masses higher-level ===================================================== END QUADRADIC LOOP
+        log_time_buffer[iterations][1] = getElaspedns(&timer_init);
 
         double aAvg = 0.;
         double aNorm = 0.;
@@ -382,6 +390,7 @@ int main(int argc, char **argv) {
         } // END FOR BODIES
         vAvg /= (double)(BODIES);
         rAvg /= (double)(counter);
+
         //cout << double(ext)/double(BODIES) << endl; // fraction of atoms which have left the volume
 
         //system("sleep 0.1");
@@ -394,31 +403,45 @@ int main(int argc, char **argv) {
           }
           cout << endl;
         }*/ //draw the new grid to the screen by row
-
+        // save data to a buffer - no speed benefit
+//        log_data_buffer[iterations][0] = time + dt;
+//        log_data_buffer[iterations][1] = rAvg;
+//        log_data_buffer[iterations][2] = vAvg;
 #ifdef PRINTTABLE
-        if (!time) printf("time [s]\tseparation [m]\tmean speed [m/s]\n");
-        printf("%e\t%e\t%e\n", time + dt, rAvg, vAvg);
+        fprintf(stdout, "%e\t%e\t%e\n", time + dt, rAvg, vAvg);
         //printf("%e,%f %f,%f %f,%f\t%e,%f %f,%f %f,%f\t%e\n",r1[0][0],r1[0][1],v2[0][0],v2[0][1],a1[0][0],a1[0][1],r1[1][0],r1[1][1],v2[1][0],v2[1][1],a1[1][0],a1[1][1],time);
 #endif
         // Wrap around - can modify this to 'eliminate' one atom and add a random new one
-        for (i = 0; i < BODIES; i++) { // ==== LINEAR LOOP (small)
+        for (i = 0; i < BODIES; i++) { // ==== LINEAR LOOP (small)printf
             for (j = 0; j < DIM; j++) {
                 if (r1[i][j] > MAX) r1[i][j] = -MAX + (r1[i][j] - MAX);
                 if (r1[i][j] < -MAX) r1[i][j] = MAX + (MAX - r1[i][j]);
                 //if ( fabs(r1[i][j]) > MAX ) v2[i][j] *= -1.; // edge effects, reverse the speed
             } //over dims
         } //over N-bodies
+        log_time_buffer[iterations][2] = getElaspedns(&timer_init);
         time += dt;
         iterations++;
     } // END WHILE MAIN LOOP
 
+    double avg_quad_time = 0, avg_post_time = 0;
+    for (i = 0; i < iterations; i++) {
+        avg_quad_time += log_time_buffer[i][1] - log_time_buffer[i][0];
+        avg_post_time += log_time_buffer[i][2] - log_time_buffer[i][1];
+    }
+    avg_quad_time /= (double) iterations;
+    avg_post_time /= (double) iterations;
 
-    for (i = 0; i < BODIES; i++) printf("%lf\n", Norms[i]);
+//    for (i = 0; i < BODIES; i++) printf("%lf\n", Norms[i]);
     double elapsed = getElaspedTime(&timer_iter);
+//    fprintf(stderr, "Number of cycles: %ld\n", numCycles);
+
     fprintf(stderr, "Number of iterations: %ld\n", iterations);
     fprintf (stderr, "Initialization seconds: %.3lf\n", initialization_time);
     fprintf (stderr, "Elapsed seconds: %.3lf\n", elapsed);
     fprintf (stderr, "Iterations per second: %.2lf\n", (double) iterations / (elapsed));
+    fprintf(stderr, "Avg Quad-loop time (approx ns): %le\n", avg_quad_time);
+    fprintf(stderr, "Avg Post-quad time (approx ns): %le\n", avg_post_time);
     return EXIT_SUCCESS;
 
 }

@@ -24,5 +24,7 @@ double getElaspedns(stopwatch_t *stopwatch);
 
 void *emalloc(size_t numBytes);
 double **new_2d_double_array(long numRows, long numCols);
+FILE *e_fopen(const char *__filename, const char *__modes);
+void die(const char *format, ...);
 
 #endif //MOL_AUX_H

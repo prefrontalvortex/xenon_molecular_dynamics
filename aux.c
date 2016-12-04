@@ -5,8 +5,19 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include "aux.h"
 
+void die(const char *format, ...) {
+    // DIE DIE DIE
+    va_list argptr;
+    va_start(argptr, format);
+    vfprintf(stderr, format, argptr);
+    va_end(argptr);
+//    fprintf(stderr, "%s x_x", msg);
+    fflush(stderr);
+    exit(EXIT_FAILURE);
+}
 
 void *emalloc(size_t numBytes){ /* Error checked malloc */
     void *buffer = malloc(numBytes);
@@ -27,6 +38,16 @@ double **new_2d_double_array(long numRows, long numCols) {
     return array;
 }
 
+FILE *e_fopen(const char *__filename, const char *__modes) {
+    /* Error checked file open */
+    FILE *infilep = fopen(__filename, __modes);
+
+    if (infilep == NULL) {
+        die("Fatal error! Can't open file!\n");
+    } else {
+        return infilep;
+    }
+}
 
 #ifdef __linux__
 

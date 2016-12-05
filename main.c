@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "math.h"
+#include <pthread.h>
 #include "string.h"
 #include "aux.h"
 
@@ -47,14 +48,19 @@
 
 typedef struct {
     int thread_id;
-    long numPhotons;
-    long numSurvivors;
-    long numAbsorbed;
-    long state;
+    double **pos;
+    double **acc;
+    double **rMin;
+    double *mass;
+    int I_D;
+    int J_D;
+//    double **vel;
+    long BODIES;
     double elapsedTime;
 
 } thread_data_t;
 
+void *calc_forces(void *argt);
 
 double rand_uniform();
 
@@ -62,48 +68,53 @@ void ClearTheScreen();
 
 double VonNeumann(double xMin, double xMax, double yMin, double yMax);
 
+// GLOBAL CONSTANTS
+const double equil[FORCES] = {0., 0.}; // Not used here, spring equilib for springy forces
+const double G_Newton[FORCES] = {-3.18e-132, 3.35e-76}; // Repulsive and attractive terms in LJ for Xenon
+const double powerLaw[FORCES] = {-13., -7.};
+
 int main(int argc, char **argv) {
     stopwatch_t timer_iter, timer_init;
 //    time_t now;
 
     const long BODIES_CALC =
-        (long)(floor((DENSITY / MOLAR_M) * AVO_NUM * pow(1e2, 3.) * pow(2. * MAX, 3.) + 0.5));
+            (long) (floor((DENSITY / MOLAR_M) * AVO_NUM * pow(1e2, 3.) * pow(2. * MAX, 3.) + 0.5));
     const long BODIES = BODIES_CALC;
-    double equil[FORCES] = {0., 0.}; // Not used here, spring equilib for springy forces
-    double G_Newton[FORCES] = {-3.18e-132, 3.35e-76}; // Repulsive and attractive terms in LJ for Xenon
-    double powerLaw[FORCES] = {-13., -7.};
-    int i, j, k, q, thr;
-    double cost, sint, phi, sinp, cosp, vx, vy, vz, vNorm;
-    double rMin[BODIES][6]; // Find distance of 1 Xe atom to its nearest neighbors
 
+    int i, j, k, q, thr, ret_code;
+    double cost, sint, phi, sinp, cosp, vx, vy, vz, vNorm;
+    double **rMin = new_2d_double_array(BODIES, 6); //rMin[BODIES][6]; // Find distance of 1 Xe atom to its nearest neighbors
     double **pos = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // POSITION
     double **acc = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // ACCELERATION
-    double **vel = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // VELOCITY -  all 3 get overloaded a lot for initial, midpoint, final value
+    double **vel = new_2d_double_array(BODIES,
+                                       DIM); //[BODIES][DIM]; // VELOCITY -  all 3 get overloaded a lot for initial, midpoint, final value
     double **radii = new_2d_double_array(BODIES, BODIES);
+    thread_data_t threadData[8];
+    pthread_t threads[8];
     double del, dt, max, mass[BODIES];
     FILE *file_speeds = e_fopen("speeds.csv", "wr");
     FILE *file_data = e_fopen("data.csv", "wr");
-    file_speeds = stdout;
+//    file_speeds = stdout;
 
 //    int grid[ROW][COL];
 //    int coord[BODIES][DIM];
     double Norms[BODIES];
 
-    const int GRAV_SIM = (G_Newton[0] == 6.673889e-11)? 1 : 0;
+    const int GRAV_SIM = (G_Newton[0] == 6.673889e-11) ? 1 : 0;
     dt = 1e-12;
     max = 1e-10;
     if (argc > 1) {
         fprintf(stderr, "\ntime_step [s] = ");
-        fscanf(stdin,"%le", &dt);
+        fscanf(stdin, "%le", &dt);
         fprintf(stderr, "\nstop-time [s] = ");
-        fscanf(stdin,"%le", &max);
-        fprintf(stderr, "\n%le %le\n", dt, max );
+        fscanf(stdin, "%le", &max);
+        fprintf(stderr, "\n%le %le\n", dt, max);
     }
 
     int numCycles = (int) (max / dt + 1);
     // buffer for printout and time for benchmarking
-    double **log_data_buffer = new_2d_double_array(numCycles+1, 3);
-    double **log_time_buffer = new_2d_double_array(numCycles+1, 3);
+    double **log_data_buffer = new_2d_double_array(numCycles + 1, 3);
+    double **log_time_buffer = new_2d_double_array(numCycles + 1, 3);
 
     int NTHREADS = 4;
     int I_D = 1, J_D = 1;
@@ -113,6 +124,8 @@ int main(int argc, char **argv) {
     if (NTHREADS >= 4) {
         J_D = 2;
     }
+//    threadData = emalloc(NTHREADS * sizeof(threadData));
+//    threads = emalloc(NTHREADS * sizeof(pthread_t));
 
 
     startTimer(&timer_init);
@@ -150,27 +163,28 @@ int main(int argc, char **argv) {
         acc[i][Z0] = 0.;
         for (j = 0; j < BODIES; j++) {              // SETUP QUADRADIC LOOP INNER =======
             radius = 0.;
-            if (j - i > 0 ) { // caching the radii seemingly has no effect - is the compiler that good?
+            if (j - i > 0 || 1) { // caching the radii seemingly has no effect - is the compiler that good?
                 for (k = 0; k < DIM; k++) {
-                delta[0] = fabs(pos[i][k] - pos[j][k]);
-                flip[k] = 1.;
-                delta[1] = 2. * MAX - delta[0];
-                if (delta[1] > 2. * MAX || delta[1] <= 0) delta[1] = 2. * MAX;
-                if (delta[1] < delta[0]) {
-                    radius += pow(delta[1], 2.);
-                    flip[k] = -1.; //wrap-around
-                } else
-                    radius += pow(delta[0], 2.);
+                    delta[0] = fabs(pos[i][k] - pos[j][k]);
+                    flip[k] = 1.;
+                    delta[1] = 2. * MAX - delta[0];
+                    if (delta[1] > 2. * MAX || delta[1] <= 0) delta[1] = 2. * MAX;
+                    if (delta[1] < delta[0]) {
+                        radius += pow(delta[1], 2.);
+                        flip[k] = -1.; //wrap-around
+                    } else
+                        radius += pow(delta[0], 2.);
                 }
-                radii[i][j] = radius;
-            } else if (j - i < 0) {
-                radius = radii[j][i];
+//                radii[i][j] = radius;
+//            } else if (j - i < 0) {
+//                radius = radii[j][i];
             } // default case is i==j, therefore radius = 0
 
             radius = sqrt(radius); // disabling this causes massive (5x) slowdown, why?
             if (DIM == 3) {
                 cosP = (pos[j][2] - pos[i][2]) /
-                       sqrt(pow(pos[i][0] - pos[j][0], 2.) + pow(pos[i][1] - pos[j][1], 2.) + pow(pos[i][2] - pos[j][2], 2.));
+                       sqrt(pow(pos[i][0] - pos[j][0], 2.) + pow(pos[i][1] - pos[j][1], 2.) +
+                            pow(pos[i][2] - pos[j][2], 2.));
                 sinP = sqrt(1. - pow(cosP, 2.));
             } else { sinP = 1.; }
             cosT = (pos[j][0] - pos[i][0]) / sqrt(pow(pos[i][0] - pos[j][0], 2.) + pow(pos[i][1] - pos[j][1], 2.));
@@ -232,12 +246,26 @@ int main(int argc, char **argv) {
         }
         //cout << rMin[i][0] << "\t" << rMin[i][1] << "\t" << rMin[i][2] << "\t" << rMin[i][3] << "\t" << rMin[i][4] << "\t" << rMin[i][5] << endl;
     } //cout << counter << " " << rAvg/double(counter) << endl;
+
+    for (thr = 0; thr < NTHREADS; thr++) {
+        threadData[thr].thread_id = thr;
+        threadData[thr].pos = pos;
+        threadData[thr].acc = acc;
+        threadData[thr].rMin = rMin;
+        threadData[thr].mass = mass;
+        threadData[thr].I_D = I_D;
+        threadData[thr].J_D = J_D;
+        threadData[thr].BODIES = BODIES;
+    } // end of thread loop
+
     fprintf(file_data, "time [s]\tseparation [m]\tmean speed [m/s]\tquad loop time [ns]\n");
     double initialization_time = getElaspedTime(&timer_init);
     startTimer(&timer_iter);
     long iterations = 0;
     while (time < max) {  //// ============================================================= BIG BOMBAD ITERATION LOOP
         //dt = del * pow(radius[0][1],7.); // Attempt at dynamic iteration step
+        fprintf(stdout, ".");
+        fflush(stdout);
 #ifdef ANIMATE
         for (i = 0; i < ROW; i++) {
             for (j = 0; j < COL; j++) {
@@ -261,87 +289,26 @@ int main(int argc, char **argv) {
 
         //// =============================================================================== INTERIOR QUADRADIC LOOP
         for (thr = 0; thr < NTHREADS; thr++) {
+//            fprintf(stdout, "t");
+//            fflush(stdout);
 
-            for (i = (thr ^ 1); i < BODIES; i+=I_D) {
-                acc[i][0] = 0.;
-                acc[i][1] = 0.;
-                acc[i][2] = 0.;
-                for (j = (thr ^ 2); j < BODIES; j+=J_D) {
-                    radius = 0.;
-                    for (k = 0; k < DIM; k++) { //// QUADRADIC *3 - commenting this out causes a 10x reduction in speed
-                        delta[0] = fabs(pos[i][k] - pos[j][k]);
-                        flip[k] = 1.;
-                        delta[1] = 2. * MAX - delta[0];
-                        if (delta[1] > 2. * MAX || delta[1] <= 0) delta[1] = 2. * MAX;
-                        if (delta[1] < delta[0]) {
-                            radius += pow(delta[1], 2.);
-                            flip[k] = -1.; //wrap-around
-                        } else
-                            radius += pow(delta[0], 2.);
-                    }
-                    radius = sqrt(radius);
-                    if (radius > THRESH_DIST)
-                        continue;  // EARLY EXIT FOR LOOP (factor >100x speedup) =================>>>
-                    if (DIM == 3) {
-                        cosP = (pos[j][2] - pos[i][2]) /
-                               sqrt(pow(pos[i][0] - pos[j][0], 2.) + pow(pos[i][1] - pos[j][1], 2.) +
-                                    pow(pos[i][2] - pos[j][2], 2.));
-                        sinP = sqrt(1. - pow(cosP, 2.));
-                    } else { sinP = 1.; }
-                    cosT = (pos[j][0] - pos[i][0]) /
-                           sqrt(pow(pos[i][0] - pos[j][0], 2.) + pow(pos[i][1] - pos[j][1], 2.));
-                    sinT = (pos[j][1] - pos[i][1]) /
-                           sqrt(pow(pos[i][0] - pos[j][0], 2.) + pow(pos[i][1] - pos[j][1], 2.));
-                    if (pos[i][0] == pos[j][0] && pos[i][1] == pos[j][1]) {
-                        cosT = 1.0;
-                        sinT = 0.0;
-                    }
-                    // calculate inter-atom distance.
-                    if (i !=
-                        j) { // disabling this block causes no real change in speed, but that may be because of NaNs
-                        if (radius < rMin[i][0] && (pos[i][X0] - pos[j][0]) > 0. && fabs(pos[i][X0]) < MAX &&
-                            fabs(pos[j][0]) < MAX)
-                            rMin[i][0] = radius;
-                        if (radius < rMin[i][1] && (pos[i][X0] - pos[j][0]) < 0. && fabs(pos[i][X0]) < MAX &&
-                            fabs(pos[j][0]) < MAX)
-                            rMin[i][1] = radius;
-                        if (radius < rMin[i][2] && (pos[i][Y0] - pos[j][1]) > 0. && fabs(pos[i][Y0]) < MAX &&
-                            fabs(pos[j][1]) < MAX)
-                            rMin[i][2] = radius;
-                        if (radius < rMin[i][3] && (pos[i][Y0] - pos[j][1]) < 0. && fabs(pos[i][Y0]) < MAX &&
-                            fabs(pos[j][1]) < MAX)
-                            rMin[i][3] = radius;
-                        if (radius < rMin[i][4] && (pos[i][Z0] - pos[j][2]) > 0. && fabs(pos[i][Z0]) < MAX &&
-                            fabs(pos[j][2]) < MAX)
-                            rMin[i][4] = radius;
-                        if (radius < rMin[i][5] && (pos[i][Z0] - pos[j][2]) < 0. && fabs(pos[i][Z0]) < MAX &&
-                            fabs(pos[j][2]) < MAX)
-                            rMin[i][5] = radius;
-//#ifdef CHECK_FOR_CRASH
-//                        if (!radius || radius < MIN || radius > 1e100 * MAX) {
-//                            printf("%lf\n", radius);
-//                            return -1;
-//                        } // CRASH!
-//#endif
-                        for (q = 0; q < FORCES; q++) { // note: this is not symmetric
-                            if (DIM > 2) {
-                                acc[i][2] +=
-                                        G_Newton[q] * pow(radius - equil[q], powerLaw[q]) * cosP / mass[i] * flip[2];
-                            }
-                            acc[i][0] +=
-                                    G_Newton[q] * pow(radius - equil[q], powerLaw[q]) * cosT * sinP / mass[i] * flip[0];
-                            acc[i][1] +=
-                                    G_Newton[q] * pow(radius - equil[q], powerLaw[q]) * sinT * sinP / mass[i] * flip[1];
-                            if (GRAV_SIM) {
-                                acc[i][0] *= mass[j] * mass[i];
-                                acc[i][1] *= mass[j] * mass[i];
-                                acc[i][2] *= mass[j] * mass[i];
-                            }
-                        } //F=m*a across all forces
-                    } //complete acceleration
-                } //loop over masses
-            } //// loop over masses higher-level ===================================================== END QUADRADIC LOOP
+            ret_code = pthread_create(&threads[thr], NULL, calc_forces, (void *) &threadData[thr]);
+            if (ret_code) {
+                die("ERROR; return code from pthread_create() is %d\n", ret_code);
+            }
+//            fprintf(stdout, ".");
+//            fflush(stdout);
         } // end of thread loop
+        for (thr = 0; thr < NTHREADS; thr++){  // Wait for threads to finish
+//            fprintf(stdout, "p");
+//            fflush(stdout);
+            pthread_join(threads[thr], NULL);
+        }
+//        fprintf(stdout, "j");
+//        fflush(stdout);
+
+//        calc_forces(&threadData[0]);
+
         log_time_buffer[iterations][1] = getElaspedns(&timer_init);
         rAvg = 0.;
         double aAvg = 0.;
@@ -382,7 +349,8 @@ int main(int argc, char **argv) {
             // Clamp the velocity by component in each dimension. Do this OR other clamp
             for (j = 0; j < DIM; j++) {
                 vel[i][j] += acc[i][j] * dt;
-                if (vel[i][j] > CLAMP_VEL) vel[i][j] = CLAMP_VEL; // If a vec component is greater than 295 m/s, clamp it
+                if (vel[i][j] > CLAMP_VEL)
+                    vel[i][j] = CLAMP_VEL; // If a vec component is greater than 295 m/s, clamp it
                 if (vel[i][j] < -CLAMP_VEL) vel[i][j] = -CLAMP_VEL; // vel vec speed ~500 m/s
                 pos[i][j] += 0.5 * vel[i][j] * dt;
                 if (pos[i][j] > MAX || pos[i][j] < -MAX) {
@@ -427,8 +395,8 @@ int main(int argc, char **argv) {
 #endif
 
         } // END FOR BODIES
-        vAvg /= (double)(BODIES);
-        rAvg /= (double)(counter);
+        vAvg /= (double) (BODIES);
+        rAvg /= (double) (counter);
 
         //cout << double(ext)/double(BODIES) << endl; // fraction of atoms which have left the volume
 
@@ -447,7 +415,8 @@ int main(int argc, char **argv) {
 //        log_data_buffer[iterations][1] = rAvg;
 //        log_data_buffer[iterations][2] = vAvg;
 #ifdef PRINTTABLE
-        fprintf(file_data, "%e\t%e\t%e\t%e\n", time + dt, rAvg, vAvg, log_time_buffer[iterations][1] - log_time_buffer[iterations][0]);
+        fprintf(file_data, "%e\t%e\t%e\t%e\n", time + dt, rAvg, vAvg,
+                log_time_buffer[iterations][1] - log_time_buffer[iterations][0]);
         //printf("%e,%f %f,%f %f,%f\t%e,%f %f,%f %f,%f\t%e\n",r1[0][0],r1[0][1],v2[0][0],v2[0][1],a1[0][0],a1[0][1],r1[1][0],r1[1][1],v2[1][0],v2[1][1],a1[1][0],a1[1][1],time);
 #endif
         // Wrap around - can modify this to 'eliminate' one atom and add a random new one
@@ -476,15 +445,112 @@ int main(int argc, char **argv) {
 //    fprintf(stderr, "Number of cycles: %ld\n", numCycles);
 
     fprintf(stderr, "Number of iterations: %ld\n", iterations);
-    fprintf (stderr, "Initialization seconds: %.3lf\n", initialization_time);
-    fprintf (stderr, "Elapsed seconds: %.3lf\n", elapsed);
-    fprintf (stderr, "Iterations per second: %.2lf\n", (double) iterations / (elapsed));
+    fprintf(stderr, "Initialization seconds: %.3lf\n", initialization_time);
+    fprintf(stderr, "Elapsed seconds: %.3lf\n", elapsed);
+    fprintf(stderr, "Iterations per second: %.2lf\n", (double) iterations / (elapsed));
     fprintf(stderr, "Avg Quad-loop time (approx ns): %le\n", avg_quad_time);
     fprintf(stderr, "Avg Post-quad time (approx ns): %le\n", avg_post_time);
-    fclose(file_speeds);
-    fclose(file_data);
+//    fclose(file_speeds);
+//    fclose(file_data);
     return EXIT_SUCCESS;
 
+}
+
+void *calc_forces(void *argt) {
+    thread_data_t *payload = (thread_data_t *) argt;
+    double **pos = payload->pos;
+    double **acc = payload->acc;
+    double **rMin = payload->rMin;
+    double *mass = payload->mass;
+    int I_D = payload->I_D;
+    int J_D = payload->J_D;
+    const long BODIES = payload->BODIES;
+//    double **vel
+    int thr = payload->thread_id;
+    int i, j, k, q;
+//    double cost, sint, phi, sinp, cosp, radius, vx, vy, vz, vNorm;
+    double radius, cosP, sinP, cosT, sinT;
+    double delta[2], flip[DIM];
+    for (i = (thr ^ 1); i < BODIES; i += I_D) {
+        acc[i][0] = 0.;
+        acc[i][1] = 0.;
+        acc[i][2] = 0.;
+        for (j = (thr ^ 2); j < BODIES; j += J_D) {
+            radius = 0.;
+            for (k = 0; k < DIM; k++) { //// QUADRADIC *3 - commenting this out causes a 10x reduction in speed
+                delta[0] = fabs(pos[i][k] - pos[j][k]);
+                flip[k] = 1.;
+                delta[1] = 2. * MAX - delta[0];
+                if (delta[1] > 2. * MAX || delta[1] <= 0) delta[1] = 2. * MAX;
+                if (delta[1] < delta[0]) {
+                    radius += pow(delta[1], 2.);
+                    flip[k] = -1.; //wrap-around
+                } else
+                    radius += pow(delta[0], 2.);
+            }
+            radius = sqrt(radius);
+            if (radius > THRESH_DIST)
+                continue;  // EARLY EXIT FOR LOOP (factor >100x speedup) =================>>>
+            if (DIM == 3) {
+                cosP = (pos[j][2] - pos[i][2]) /
+                       sqrt(pow(pos[i][0] - pos[j][0], 2.) + pow(pos[i][1] - pos[j][1], 2.) +
+                            pow(pos[i][2] - pos[j][2], 2.));
+                sinP = sqrt(1. - pow(cosP, 2.));
+            } else { sinP = 1.; }
+            cosT = (pos[j][0] - pos[i][0]) /
+                   sqrt(pow(pos[i][0] - pos[j][0], 2.) + pow(pos[i][1] - pos[j][1], 2.));
+            sinT = (pos[j][1] - pos[i][1]) /
+                   sqrt(pow(pos[i][0] - pos[j][0], 2.) + pow(pos[i][1] - pos[j][1], 2.));
+            if (pos[i][0] == pos[j][0] && pos[i][1] == pos[j][1]) {
+                cosT = 1.0;
+                sinT = 0.0;
+            }
+            // calculate inter-atom distance.
+            if (i !=
+                j) { // disabling this block causes no real change in speed, but that may be because of NaNs
+                if (radius < rMin[i][0] && (pos[i][X0] - pos[j][0]) > 0. && fabs(pos[i][X0]) < MAX &&
+                    fabs(pos[j][0]) < MAX)
+                    rMin[i][0] = radius;
+                if (radius < rMin[i][1] && (pos[i][X0] - pos[j][0]) < 0. && fabs(pos[i][X0]) < MAX &&
+                    fabs(pos[j][0]) < MAX)
+                    rMin[i][1] = radius;
+                if (radius < rMin[i][2] && (pos[i][Y0] - pos[j][1]) > 0. && fabs(pos[i][Y0]) < MAX &&
+                    fabs(pos[j][1]) < MAX)
+                    rMin[i][2] = radius;
+                if (radius < rMin[i][3] && (pos[i][Y0] - pos[j][1]) < 0. && fabs(pos[i][Y0]) < MAX &&
+                    fabs(pos[j][1]) < MAX)
+                    rMin[i][3] = radius;
+                if (radius < rMin[i][4] && (pos[i][Z0] - pos[j][2]) > 0. && fabs(pos[i][Z0]) < MAX &&
+                    fabs(pos[j][2]) < MAX)
+                    rMin[i][4] = radius;
+                if (radius < rMin[i][5] && (pos[i][Z0] - pos[j][2]) < 0. && fabs(pos[i][Z0]) < MAX &&
+                    fabs(pos[j][2]) < MAX)
+                    rMin[i][5] = radius;
+//#ifdef CHECK_FOR_CRASH
+//                        if (!radius || radius < MIN || radius > 1e100 * MAX) {
+//                            printf("%lf\n", radius);
+//                            return -1;
+//                        } // CRASH!
+//#endif
+                for (q = 0; q < FORCES; q++) { // note: this is not symmetric
+                    if (DIM > 2) {
+                        acc[i][2] +=
+                                G_Newton[q] * pow(radius - equil[q], powerLaw[q]) * cosP / mass[i] * flip[2];
+                    }
+                    acc[i][0] +=
+                            G_Newton[q] * pow(radius - equil[q], powerLaw[q]) * cosT * sinP / mass[i] * flip[0];
+                    acc[i][1] +=
+                            G_Newton[q] * pow(radius - equil[q], powerLaw[q]) * sinT * sinP / mass[i] * flip[1];
+//                    if (GRAV_SIM) {
+//                        acc[i][0] *= mass[j] * mass[i];
+//                        acc[i][1] *= mass[j] * mass[i];
+//                        acc[i][2] *= mass[j] * mass[i];
+//                    }
+                } //F=m*a across all forces
+            } //complete acceleration
+        } //loop over masses
+    } //// loop over masses higher-level ===================================================== END QUADRADIC LOOP
+//    return payload;
 }
 
 double rand_uniform() {

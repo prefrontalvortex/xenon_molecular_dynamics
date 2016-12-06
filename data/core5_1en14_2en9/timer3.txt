@@ -1,0 +1,11 @@
+\nTime: Sat Dec  3 23:10:47 EST 2016\n
+Number of iterations: 20
+Initialization seconds: 1.626
+Elapsed seconds: 1.375
+Iterations per second: 14.55
+\nTime: Sat Dec  3 23:12:28 EST 2016\n
+\nTime: Sun Dec  4 10:02:12 EST 2016\n
+Number of iterations: 200000
+Initialization seconds: 1.799
+Elapsed seconds: 27701.115
+Iterations per second: 7.22

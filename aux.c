@@ -125,3 +125,26 @@ double getElaspedTime() {
 }
 #endif
 
+void wipe(FILE *file, int n) {
+    for (; n>0; n--) {
+        fprintf(file, "\033[A\033[2K");
+    }
+}
+
+void progress_bar(long idx, long max) {
+    const char SPINNER[5] = "\\|/-";
+    int WIDTH = 40;
+    int i;
+    double perc = (double) idx / (double) max;
+    int fullbars = (int) (perc * WIDTH);
+    int halfbar = ((int) (perc * WIDTH*2 )) - 2*fullbars;
+    wipe(stderr, 1);
+    fprintf(stderr, "%c [", SPINNER[idx%4]);
+    for (i = 0; i < fullbars; i++) fprintf(stderr, "=");
+    if (halfbar) fprintf(stderr, "-");
+    for (i = 0; i < (WIDTH-fullbars-halfbar); i++) fprintf(stderr, " ");
+
+    fprintf(stdout, "] %2.1lf%% %ld/%ld\n", perc*100, idx, max);
+
+}
+

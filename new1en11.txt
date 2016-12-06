@@ -1,39 +1,24 @@
-
-time_step [s] = 
-stop-time [s] = 
 1.000000e-11 1.000000e-09
 Number of iterations: 101
 Initialization seconds: 1.629
 Elapsed seconds: 3.953
 Iterations per second: 25.55
 
-time_step [s] = 
-stop-time [s] = 
-1.000000e-11 1.000000e-09
 Number of iterations: 101
 Initialization seconds: 1.694
 Elapsed seconds: 4.009
 Iterations per second: 25.19
 
-time_step [s] = 
-stop-time [s] = 
-1.000000e-11 1.000000e-09
 Number of iterations: 101
 Initialization seconds: 1.725
 Elapsed seconds: 4.619
 Iterations per second: 21.87
 
-time_step [s] = 
-stop-time [s] = 
-1.000000e-11 1.000000e-09
 Number of iterations: 101
 Initialization seconds: 1.679
 Elapsed seconds: 4.156
 Iterations per second: 24.30
 
-time_step [s] = 
-stop-time [s] = 
-1.000000e-11 1.000000e-09
 Number of iterations: 101
 Initialization seconds: 1.663
 Elapsed seconds: 3.947

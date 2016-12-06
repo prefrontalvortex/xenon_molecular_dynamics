@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include "string.h"
 #include "aux.h"
+#include "argparse.h"
 
 
 // DIMS
@@ -36,13 +37,14 @@
 
 #define THRESH_DIST 1e-9
 #define CLAMP_VEL 295.0
+#define CLAMP_SPEED 500.0
 
 #define DIM 3
 #define FORCES 2
 
 //// RUNTIME PARAMETERS
 #define PRINTTABLE
-//#define CLAMP_BY_NORM
+#define CLAMP_BY_NORM
 //#define ANIMATE
 //#define CHECK_FOR_CRASH
 
@@ -81,19 +83,20 @@ int main(int argc, char **argv) {
             (long) (floor((DENSITY / MOLAR_M) * AVO_NUM * pow(1e2, 3.) * pow(2. * MAX, 3.) + 0.5));
     const long BODIES = BODIES_CALC;
 
-    int i, j, k, q, thr, ret_code;
+    int i, j, k, q, thr, ret_code, NTHREADS;
     double cost, sint, phi, sinp, cosp, vx, vy, vz, vNorm;
     double **rMin = new_2d_double_array(BODIES, 6); //rMin[BODIES][6]; // Find distance of 1 Xe atom to its nearest neighbors
     double **pos = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // POSITION
     double **acc = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // ACCELERATION
-    double **vel = new_2d_double_array(BODIES,
-                                       DIM); //[BODIES][DIM]; // VELOCITY -  all 3 get overloaded a lot for initial, midpoint, final value
+    double **vel = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // VELOCITY -
+    // all 3 get overloaded a lot for initial, midpoint, final value
     double **radii = new_2d_double_array(BODIES, BODIES);
+    double radius, cosT, sinT, cosP, sinP, delta[2], flip[DIM];
+    double rAvg = 0.;
     thread_data_t threadData[8];
     pthread_t threads[8];
-    double del, dt, max, mass[BODIES];
-    FILE *file_speeds = e_fopen("speeds.csv", "wr");
-    FILE *file_data = e_fopen("data.csv", "wr");
+    double del, dt, max, mass[BODIES], speedmax;
+
 //    file_speeds = stdout;
 
 //    int grid[ROW][COL];
@@ -103,20 +106,31 @@ int main(int argc, char **argv) {
     const int GRAV_SIM = (G_Newton[0] == 6.673889e-11) ? 1 : 0;
     dt = 1e-12;
     max = 1e-10;
-    if (argc > 1) {
-        fprintf(stderr, "\ntime_step [s] = ");
-        fscanf(stdin, "%le", &dt);
-        fprintf(stderr, "\nstop-time [s] = ");
-        fscanf(stdin, "%le", &max);
-        fprintf(stderr, "\n%le %le\n", dt, max);
-    }
+//    if (argc > 1) {
+//        fprintf(stderr, "\ntime_step [s] = ");
+//        fscanf(stdin, "%le", &dt);
+//        fprintf(stderr, "\nstop-time [s] = ");
+//        fscanf(stdin, "%le", &max);
+//        fprintf(stderr, "\n%le %le\n", dt, max);
+//    }
+
+    arg_t *args = NULL;
+    parser_populate(&args, argc, argv);
+
+    parse_assign_d(&dt, "-t", args, "1e-12");
+    parse_assign_d(&max, "-m", args, "1e-10");
+    parse_assign_d(&speedmax, "-s", args, "500.0");
+    parse_assign_i(&NTHREADS, "-th", args, "4");
+
+
+    fprintf(stderr, "dt: %le\nmax: %le\nthreads: %d\n", dt, max, NTHREADS);
+
 
     int numCycles = (int) (max / dt + 1);
     // buffer for printout and time for benchmarking
     double **log_data_buffer = new_2d_double_array(numCycles + 1, 3);
     double **log_time_buffer = new_2d_double_array(numCycles + 1, 3);
 
-    int NTHREADS = 4;
     int I_D = 1, J_D = 1;
     if (NTHREADS >= 2) {
         I_D = 2;
@@ -126,7 +140,12 @@ int main(int argc, char **argv) {
     }
 //    threadData = emalloc(NTHREADS * sizeof(threadData));
 //    threads = emalloc(NTHREADS * sizeof(pthread_t));
+    char name_speed[256], name_data[256];
+    sprintf(name_data, "out/data_t%d_dt%d_m%d_s%d.csv", NTHREADS, (int) -log10(dt), (int) -log10(max), (int) speedmax);
+    sprintf(name_speed, "out/speed_t%d_dt%d_m%d_s%d.csv", NTHREADS, (int) -log10(dt), (int) -log10(max), (int) speedmax);
 
+    FILE *file_speeds = e_fopen(name_speed, "wr");
+    FILE *file_data = e_fopen(name_data, "wr");
 
     startTimer(&timer_init);
     for (i = 0; i < BODIES; i++) {                  // Distribute the bodies in the chamber with random velocities
@@ -154,8 +173,7 @@ int main(int argc, char **argv) {
         vel[i][Z0] = vz * vNorm;
     }                                               // end distribute
 
-    double radius, cosT, sinT, cosP, sinP, delta[2], flip[DIM];
-    double rAvg = 0.;
+
     // Initial Setup. Loop over all the atom-edges, O(n**2)
     for (i = 0; i < BODIES; i++) {
         acc[i][X0] = 0.;
@@ -216,6 +234,7 @@ int main(int argc, char **argv) {
                 } //F=m*a across all forces
             } //complete acceleration
         } //// loop over masses   =========== end of inner loop
+        progress_bar(i, BODIES);
     } // End Startup Loop - loop over masses higher-level
     double time = 0.;
     long counter = 0;
@@ -264,8 +283,8 @@ int main(int argc, char **argv) {
     long iterations = 0;
     while (time < max) {  //// ============================================================= BIG BOMBAD ITERATION LOOP
         //dt = del * pow(radius[0][1],7.); // Attempt at dynamic iteration step
-        fprintf(stdout, ".");
-        fflush(stdout);
+//        fprintf(stdout, ".");
+//        fflush(stdout);
 #ifdef ANIMATE
         for (i = 0; i < ROW; i++) {
             for (j = 0; j < COL; j++) {
@@ -367,8 +386,10 @@ int main(int argc, char **argv) {
             Norms[i] = vNorm;
             // This clamps to a maximum SPEED rather than component.
 #ifdef CLAMP_BY_NORM
-            if (vNorm > 5e2 && isnan(vNorm) && out && vNorm < 4e1) { //change and's to or's to activate
-                for (j = 0; j < DIM; j++) { r1[i][j] = (2. * rand_uniform() - 1.) * MAX; }
+//            if (vNorm > speedmax || isnan(vNorm) || out || vNorm < 4e1) { //change and's to or's to activate
+            if (vNorm > speedmax ) { //change and's to or's to activate
+
+                for (j = 0; j < DIM; j++) { pos[i][j] = (2. * rand_uniform() - 1.) * MAX; }
                 cost = 1. - 2. * rand_uniform();
                 sint = sqrt((1. - cost) * (1. + cost));
                 phi = 2. * M_PI * rand_uniform();
@@ -377,10 +398,10 @@ int main(int argc, char **argv) {
                 vx = sint * cosp;
                 vy = sint * sinp;
                 vz = cost;
-                vNorm = VonNeumann(4e1, 5e2, 0., 15e3); // meters per sec.
-                v2[i][0] = vx * vNorm;
-                v2[i][1] = vy * vNorm;
-                v2[i][2] = vz * vNorm;
+                vNorm = VonNeumann(4e1, speedmax, 0., 15e3); // meters per sec.
+                vel[i][0] = vx * vNorm;
+                vel[i][1] = vy * vNorm;
+                vel[i][2] = vz * vNorm;
             } //vAvg += vNorm; Norms[i]=vNorm;
 #endif
 #ifdef ANIMATE
@@ -428,9 +449,10 @@ int main(int argc, char **argv) {
             } //over dims
         } //over N-bodies
         log_time_buffer[iterations][2] = getElaspedns(&timer_init);
+        progress_bar(iterations, numCycles);
         time += dt;
         iterations++;
-    } // END WHILE MAIN LOOP
+    } //// END WHILE MAIN LOOP =====================================================================
 
     double avg_quad_time = 0, avg_post_time = 0;
     for (i = 0; i < iterations; i++) {
@@ -506,26 +528,26 @@ void *calc_forces(void *argt) {
                 sinT = 0.0;
             }
             // calculate inter-atom distance.
-            if (i !=
-                j) { // disabling this block causes no real change in speed, but that may be because of NaNs
-                if (radius < rMin[i][0] && (pos[i][X0] - pos[j][0]) > 0. && fabs(pos[i][X0]) < MAX &&
-                    fabs(pos[j][0]) < MAX)
-                    rMin[i][0] = radius;
-                if (radius < rMin[i][1] && (pos[i][X0] - pos[j][0]) < 0. && fabs(pos[i][X0]) < MAX &&
-                    fabs(pos[j][0]) < MAX)
-                    rMin[i][1] = radius;
-                if (radius < rMin[i][2] && (pos[i][Y0] - pos[j][1]) > 0. && fabs(pos[i][Y0]) < MAX &&
-                    fabs(pos[j][1]) < MAX)
-                    rMin[i][2] = radius;
-                if (radius < rMin[i][3] && (pos[i][Y0] - pos[j][1]) < 0. && fabs(pos[i][Y0]) < MAX &&
-                    fabs(pos[j][1]) < MAX)
-                    rMin[i][3] = radius;
-                if (radius < rMin[i][4] && (pos[i][Z0] - pos[j][2]) > 0. && fabs(pos[i][Z0]) < MAX &&
-                    fabs(pos[j][2]) < MAX)
-                    rMin[i][4] = radius;
-                if (radius < rMin[i][5] && (pos[i][Z0] - pos[j][2]) < 0. && fabs(pos[i][Z0]) < MAX &&
-                    fabs(pos[j][2]) < MAX)
-                    rMin[i][5] = radius;
+            if (i != j) { // disabling this block causes no real change in speed, but that may be because of NaNs
+//                if (radius < rMin[i][0] && (pos[i][X0] - pos[j][0]) > 0. && fabs(pos[i][X0]) < MAX &&
+//                    fabs(pos[j][0]) < MAX)
+//                    rMin[i][0] = radius;
+//                if (radius < rMin[i][1] && (pos[i][X0] - pos[j][0]) < 0. && fabs(pos[i][X0]) < MAX &&
+//                    fabs(pos[j][0]) < MAX)
+//                    rMin[i][1] = radius;
+//                if (radius < rMin[i][2] && (pos[i][Y0] - pos[j][1]) > 0. && fabs(pos[i][Y0]) < MAX &&
+//                    fabs(pos[j][1]) < MAX)
+//                    rMin[i][2] = radius;
+//                if (radius < rMin[i][3] && (pos[i][Y0] - pos[j][1]) < 0. && fabs(pos[i][Y0]) < MAX &&
+//                    fabs(pos[j][1]) < MAX)
+//                    rMin[i][3] = radius;
+//                if (radius < rMin[i][4] && (pos[i][Z0] - pos[j][2]) > 0. && fabs(pos[i][Z0]) < MAX &&
+//                    fabs(pos[j][2]) < MAX)
+//                    rMin[i][4] = radius;
+//                if (radius < rMin[i][5] && (pos[i][Z0] - pos[j][2]) < 0. && fabs(pos[i][Z0]) < MAX &&
+//                    fabs(pos[j][2]) < MAX)
+//                    rMin[i][5] = radius;
+
 //#ifdef CHECK_FOR_CRASH
 //                        if (!radius || radius < MIN || radius > 1e100 * MAX) {
 //                            printf("%lf\n", radius);

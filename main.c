@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
 
     parse_assign_d(&dt, "-t", args, "1e-12");
     parse_assign_d(&max, "-m", args, "1e-10");
-    parse_assign_d(&speedmax, "-s", args, "500.0");
+    parse_assign_d(&speedmax, "-s", args, "555.0");
     parse_assign_i(&NTHREADS, "-th", args, "4");
 
 
@@ -472,6 +472,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Iterations per second: %.2lf\n", (double) iterations / (elapsed));
     fprintf(stderr, "Avg Quad-loop time (approx ns): %le\n", avg_quad_time);
     fprintf(stderr, "Avg Post-quad time (approx ns): %le\n", avg_post_time);
+    fprintf(stderr, "Output file: %s\n", name_data);
 //    fclose(file_speeds);
 //    fclose(file_data);
     return EXIT_SUCCESS;

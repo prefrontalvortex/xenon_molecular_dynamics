@@ -647,14 +647,20 @@ void inject_HEP(double keV, thread_data_t *payload) {
      * KE = .5mv^2, therefore v = sqrt(2*KE/m) */
     double phi, sinp, cosp, vx, vy, vz, sint, cost;
     double vNorm = sqrt(2*KEV_TO_JOULE/payload->mass[0]);
+    cost = 1. - 2. * rand_uniform();            // Random trajectory
+    sint = sqrt((1. - cost) * (1. + cost));
     phi = 2. * M_PI * rand_uniform();
     sinp = sin(phi);
     cosp = cos(phi);
     vx = sint * cosp;                           // Random starting speed
     vy = sint * sinp;
     vz = cost;
-    //vNorm = VonNeumann ( 4e1, 5e2, 0., 15e3 );
-    payload->vel[HEP][X0] = vx * vNorm;
-    payload->vel[HEP][Y0] = vy * vNorm;
-    payload->vel[HEP][Z0] = vz * vNorm;
+    
+    fprintf(stderr, "vNorm: %le\n\n\n", vNorm);
+    payload->vel[HEP][X0] = vNorm;
+    payload->vel[HEP][Y0] = 0;
+    payload->vel[HEP][Z0] = 0;
+//    payload->vel[HEP][X0] = vx * vNorm;
+//    payload->vel[HEP][Y0] = vy * vNorm;
+//    payload->vel[HEP][Z0] = vz * vNorm;
 }

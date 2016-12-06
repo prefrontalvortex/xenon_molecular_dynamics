@@ -23,6 +23,8 @@
 #define N4 4
 #define N5 5
 
+#define HEP 8
+
 #define ROW 45
 #define COL 91
 #define X_FACTOR 0.555e-10
@@ -31,6 +33,7 @@
 #define MIN 1.e-15
 #define MAX 2.5e-9
 
+#define KEV_TO_JOULE 1.60218e-16
 #define AVO_NUM 6.0221367e23
 #define DENSITY 2.888
 #define MOLAR_M 131.293
@@ -43,6 +46,7 @@
 #define FORCES 2
 
 //// RUNTIME PARAMETERS
+#define PROG_BAR
 #define PRINTTABLE
 #define CLAMP_BY_NORM
 //#define ANIMATE
@@ -52,6 +56,7 @@ typedef struct {
     int thread_id;
     double **pos;
     double **acc;
+    double **vel;
     double **rMin;
     double *mass;
     int I_D;
@@ -63,12 +68,10 @@ typedef struct {
 } thread_data_t;
 
 void *calc_forces(void *argt);
-
 double rand_uniform();
-
 void ClearTheScreen();
-
 double VonNeumann(double xMin, double xMax, double yMin, double yMax);
+void inject_HEP(double keV, thread_data_t *payload);
 
 // GLOBAL CONSTANTS
 const double equil[FORCES] = {0., 0.}; // Not used here, spring equilib for springy forces
@@ -84,7 +87,7 @@ int main(int argc, char **argv) {
     const long BODIES = BODIES_CALC;
 
     int i, j, k, q, thr, ret_code, NTHREADS;
-    double cost, sint, phi, sinp, cosp, vx, vy, vz, vNorm;
+    double cost, sint, phi, sinp, cosp, vx, vy, vz, vNorm, keV_collision;
     double **rMin = new_2d_double_array(BODIES, 6); //rMin[BODIES][6]; // Find distance of 1 Xe atom to its nearest neighbors
     double **pos = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // POSITION
     double **acc = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // ACCELERATION
@@ -120,6 +123,8 @@ int main(int argc, char **argv) {
     parse_assign_d(&dt, "-t", args, "1e-12");
     parse_assign_d(&max, "-m", args, "1e-10");
     parse_assign_d(&speedmax, "-s", args, "555.0");
+    parse_assign_d(&keV_collision, "-e", args, "1.0");
+
     parse_assign_i(&NTHREADS, "-th", args, "4");
 
 
@@ -130,6 +135,8 @@ int main(int argc, char **argv) {
     // buffer for printout and time for benchmarking
     double **log_data_buffer = new_2d_double_array(numCycles + 1, 3);
     double **log_time_buffer = new_2d_double_array(numCycles + 1, 3);
+    double **log_hep_buffer = new_2d_double_array(numCycles + 1, 4);
+
 
     int I_D = 1, J_D = 1;
     if (NTHREADS >= 2) {
@@ -140,12 +147,16 @@ int main(int argc, char **argv) {
     }
 //    threadData = emalloc(NTHREADS * sizeof(threadData));
 //    threads = emalloc(NTHREADS * sizeof(pthread_t));
-    char name_speed[256], name_data[256];
-    sprintf(name_data, "out/data_t%d_dt%d_m%d_s%d.csv", NTHREADS, (int) -log10(dt), (int) -log10(max), (int) speedmax);
-    sprintf(name_speed, "out/speed_t%d_dt%d_m%d_s%d.csv", NTHREADS, (int) -log10(dt), (int) -log10(max), (int) speedmax);
+    char name_speed[256], name_data[256], name_hep[256], suffix[256];
+    sprintf(suffix, "t%d_dt%d_m%d_s%d_e%d.csv", NTHREADS, (int) -log10(dt), (int) -log10(max), (int) speedmax, (int) keV_collision);
+    sprintf(name_data, "out/data_%s", suffix);
+    sprintf(name_speed, "out/speed_%s", suffix);
+    sprintf(name_hep, "out/hep_%s", suffix);
 
     FILE *file_speeds = e_fopen(name_speed, "wr");
     FILE *file_data = e_fopen(name_data, "wr");
+    FILE *file_hep = e_fopen(name_hep, "wr");
+
 
     startTimer(&timer_init);
     for (i = 0; i < BODIES; i++) {                  // Distribute the bodies in the chamber with random velocities
@@ -269,6 +280,7 @@ int main(int argc, char **argv) {
     for (thr = 0; thr < NTHREADS; thr++) {
         threadData[thr].thread_id = thr;
         threadData[thr].pos = pos;
+        threadData[thr].vel = vel;
         threadData[thr].acc = acc;
         threadData[thr].rMin = rMin;
         threadData[thr].mass = mass;
@@ -280,7 +292,7 @@ int main(int argc, char **argv) {
     fprintf(file_data, "time [s]\tseparation [m]\tmean speed [m/s]\tquad loop time [ns]\n");
     double initialization_time = getElaspedTime(&timer_init);
     startTimer(&timer_iter);
-    long iterations = 0;
+    long iter = 0;
     while (time < max) {  //// ============================================================= BIG BOMBAD ITERATION LOOP
         //dt = del * pow(radius[0][1],7.); // Attempt at dynamic iteration step
 //        fprintf(stdout, ".");
@@ -292,7 +304,7 @@ int main(int argc, char **argv) {
             }
         } //end of the initial grid setup
 #endif
-        log_time_buffer[iterations][0] = getElaspedns(&timer_init);
+        log_time_buffer[iter][0] = getElaspedns(&timer_init);
         for (i = 0; i < BODIES; i++) {
             rMin[i][0] = MAX;
             rMin[i][1] = MAX;
@@ -328,7 +340,7 @@ int main(int argc, char **argv) {
 
 //        calc_forces(&threadData[0]);
 
-        log_time_buffer[iterations][1] = getElaspedns(&timer_init);
+        log_time_buffer[iter][1] = getElaspedns(&timer_init);
         rAvg = 0.;
         double aAvg = 0.;
         double aNorm = 0.;
@@ -414,7 +426,9 @@ int main(int argc, char **argv) {
             }
 
 #endif
-
+        if (i == HEP) {
+            log_hep_buffer[iter][4] == vNorm;
+        }
         } // END FOR BODIES
         vAvg /= (double) (BODIES);
         rAvg /= (double) (counter);
@@ -432,12 +446,12 @@ int main(int argc, char **argv) {
           cout << endl;
         }*/ //draw the new grid to the screen by row
         // save data to a buffer - no speed benefit
-//        log_data_buffer[iterations][0] = time + dt;
-//        log_data_buffer[iterations][1] = rAvg;
-//        log_data_buffer[iterations][2] = vAvg;
+//        log_data_buffer[iter][0] = time + dt;
+//        log_data_buffer[iter][1] = rAvg;
+//        log_data_buffer[iter][2] = vAvg;
 #ifdef PRINTTABLE
         fprintf(file_data, "%e\t%e\t%e\t%e\n", time + dt, rAvg, vAvg,
-                log_time_buffer[iterations][1] - log_time_buffer[iterations][0]);
+                log_time_buffer[iter][1] - log_time_buffer[iter][0]);
         //printf("%e,%f %f,%f %f,%f\t%e,%f %f,%f %f,%f\t%e\n",r1[0][0],r1[0][1],v2[0][0],v2[0][1],a1[0][0],a1[0][1],r1[1][0],r1[1][1],v2[1][0],v2[1][1],a1[1][0],a1[1][1],time);
 #endif
         // Wrap around - can modify this to 'eliminate' one atom and add a random new one
@@ -448,28 +462,45 @@ int main(int argc, char **argv) {
                 //if ( fabs(r1[i][j]) > MAX ) v2[i][j] *= -1.; // edge effects, reverse the speed
             } //over dims
         } //over N-bodies
-        log_time_buffer[iterations][2] = getElaspedns(&timer_init);
-        progress_bar(iterations, numCycles, &timer_iter);
+
+        // Halfway through the sim, inject a high energy collision
+        if (iter == (int) (numCycles / 2)) {
+            fprintf(stderr, "collision!\n\n");
+            inject_HEP(keV_collision, &threadData[0]);
+        }
+        log_hep_buffer[iter][X0] = pos[HEP][X0];
+        log_hep_buffer[iter][Y0] = pos[HEP][Y0];
+        log_hep_buffer[iter][Z0] = pos[HEP][Z0];
+//        fprintf(stderr, "%le\t%le\t%le\n", pos[HEP][X0], pos[HEP][Y0], pos[HEP][Z0]);
+
+
+        log_time_buffer[iter][2] = getElaspedns(&timer_init);
+#ifdef PROG_BAR
+        progress_bar(iter, numCycles, &timer_iter);
+#endif
         time += dt;
-        iterations++;
-    } //// END WHILE MAIN LOOP =====================================================================
+        iter++;
+    } //// END WHILE MAIN LOOP ===================================================================== XXXX
 
     double avg_quad_time = 0, avg_post_time = 0;
-    for (i = 0; i < iterations; i++) {
+    for (i = 0; i < iter; i++) {
         avg_quad_time += log_time_buffer[i][1] - log_time_buffer[i][0];
         avg_post_time += log_time_buffer[i][2] - log_time_buffer[i][1];
     }
-    avg_quad_time /= (double) iterations;
-    avg_post_time /= (double) iterations;
+    avg_quad_time /= (double) iter;
+    avg_post_time /= (double) iter;
+    for (i = 0; i < numCycles; i++) {
+        fprintf(file_hep, "%le\t%le\t%le\n", log_hep_buffer[i][0], log_hep_buffer[i][1], log_hep_buffer[i][2]);
+    }
 
     for (i = 0; i < BODIES; i++) fprintf(file_speeds, "%lf\n", Norms[i]);
     double elapsed = getElaspedTime(&timer_iter);
 //    fprintf(stderr, "Number of cycles: %ld\n", numCycles);
 
-    fprintf(stderr, "Number of iterations: %ld\n", iterations);
+    fprintf(stderr, "Number of iter: %ld\n", iter);
     fprintf(stderr, "Initialization seconds: %.3lf\n", initialization_time);
     fprintf(stderr, "Elapsed seconds: %.3lf\n", elapsed);
-    fprintf(stderr, "Iterations per second: %.2lf\n", (double) iterations / (elapsed));
+    fprintf(stderr, "Iterations per second: %.2lf\n", (double) iter / (elapsed));
     fprintf(stderr, "Avg Quad-loop time (approx ns): %le\n", avg_quad_time);
     fprintf(stderr, "Avg Post-quad time (approx ns): %le\n", avg_post_time);
     fprintf(stderr, "Output file: %s\n", name_data);
@@ -609,4 +640,22 @@ double VonNeumann(double xMin, double xMax, double yMin, double yMax) {
 
     return xTry; //selection under curve made
 
+}
+
+void inject_HEP(double keV, thread_data_t *payload) {
+    /* Recoils the 0th index atom with energy equal to the input keV
+     * KE = .5mv^2, therefore v = sqrt(2*KE/m) */
+    double phi, sinp, cosp, vx, vy, vz, sint, cost;
+    double vNorm = sqrt(2*KEV_TO_JOULE/payload->mass[0]);
+    phi = 2. * M_PI * rand_uniform();
+    sinp = sin(phi);
+    cosp = cos(phi);
+    vx = sint * cosp;                           // Random starting speed
+    vy = sint * sinp;
+    vz = cost;
+    vNorm = rand_uniform() * 500.; // meters per sec.
+    //vNorm = VonNeumann ( 4e1, 5e2, 0., 15e3 );
+    payload->vel[HEP][X0] = vx * vNorm;
+    payload->vel[HEP][Y0] = vy * vNorm;
+    payload->vel[HEP][Z0] = vz * vNorm;
 }

@@ -427,7 +427,7 @@ int main(int argc, char **argv) {
 
 #endif
         if (i == HEP) {
-            log_hep_buffer[iter][4] == vNorm;
+            log_hep_buffer[iter][3] = vNorm;
         }
         } // END FOR BODIES
         vAvg /= (double) (BODIES);
@@ -490,7 +490,7 @@ int main(int argc, char **argv) {
     avg_quad_time /= (double) iter;
     avg_post_time /= (double) iter;
     for (i = 0; i < numCycles; i++) {
-        fprintf(file_hep, "%le\t%le\t%le\n", log_hep_buffer[i][0], log_hep_buffer[i][1], log_hep_buffer[i][2]);
+        fprintf(file_hep, "%le\t%le\t%le\t%le\n", log_hep_buffer[i][0], log_hep_buffer[i][1], log_hep_buffer[i][2], log_hep_buffer[i][3]);
     }
 
     for (i = 0; i < BODIES; i++) fprintf(file_speeds, "%lf\n", Norms[i]);
@@ -653,7 +653,6 @@ void inject_HEP(double keV, thread_data_t *payload) {
     vx = sint * cosp;                           // Random starting speed
     vy = sint * sinp;
     vz = cost;
-    vNorm = rand_uniform() * 500.; // meters per sec.
     //vNorm = VonNeumann ( 4e1, 5e2, 0., 15e3 );
     payload->vel[HEP][X0] = vx * vNorm;
     payload->vel[HEP][Y0] = vy * vNorm;

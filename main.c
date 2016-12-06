@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
             (long) (floor((DENSITY / MOLAR_M) * AVO_NUM * pow(1e2, 3.) * pow(2. * MAX, 3.) + 0.5));
     const long BODIES = BODIES_CALC;
 
-    int i, j, k, q, thr, ret_code, NTHREADS, use_hep;
+    int i, j, k, q, thr, ret_code, NTHREADS, use_hep, clamp_norm;
     double cost, sint, phi, sinp, cosp, vx, vy, vz, vNorm, keV_collision;
     double **rMin = new_2d_double_array(BODIES, 6); //rMin[BODIES][6]; // Find distance of 1 Xe atom to its nearest neighbors
     double **pos = new_2d_double_array(BODIES, DIM); //[BODIES][DIM]; // POSITION
@@ -125,6 +125,8 @@ int main(int argc, char **argv) {
     parse_assign_d(&dt, "-t", args, "1e-12");
     parse_assign_d(&max, "-m", args, "1e-10");
     parse_assign_d(&speedmax, "-s", args, "555.0");
+    parse_assign_b(&clamp_norm, "-s", args, "0");
+
     parse_assign_d(&keV_collision, "-e", args, "1.0");
     parse_assign_b(&use_hep, "-e", args, "0");
     parse_assign_i(&NTHREADS, "-th", args, "4");
@@ -153,7 +155,9 @@ int main(int argc, char **argv) {
     char name_speed[256], name_data[256], name_hep[256], suffix[256], evval[32];
     if (use_hep) sprintf(evval, "eV%d", (int) (keV_collision*1000));
     else sprintf(evval, "_");
-    sprintf(suffix, "t%d_dt%d_m%d_s%d_%s.csv", NTHREADS, (int) -log10(dt), (int) -log10(max), (int) speedmax, evval);
+    char clampmodes[3] = "cv";
+    sprintf(suffix, "%ct%d_dt%d_m%d_s%d_%s.csv", clampmodes[clamp_norm], NTHREADS, (int) -log10(dt),
+            (int) -log10(max), (int) speedmax, evval);
     sprintf(name_data, "out/data_%s", suffix);
     sprintf(name_speed, "out/speed_%s", suffix);
     sprintf(name_hep, "out/hep_%s", suffix);
@@ -404,7 +408,7 @@ int main(int argc, char **argv) {
             // This clamps to a maximum SPEED rather than component.
 #ifdef CLAMP_BY_NORM
 //            if (vNorm > speedmax || isnan(vNorm) || out || vNorm < 4e1) { //change and's to or's to activate
-            if (vNorm > speedmax ) { //change and's to or's to activate
+            if ((vNorm > speedmax) && clamp_norm ) { //change and's to or's to activate
 
                 for (j = 0; j < DIM; j++) { pos[i][j] = (2. * rand_uniform() - 1.) * MAX; }
                 cost = 1. - 2. * rand_uniform();

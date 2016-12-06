@@ -646,7 +646,7 @@ void inject_HEP(double keV, thread_data_t *payload) {
     /* Recoils the 0th index atom with energy equal to the input keV
      * KE = .5mv^2, therefore v = sqrt(2*KE/m) */
     double phi, sinp, cosp, vx, vy, vz, sint, cost;
-    double vNorm = sqrt(2*KEV_TO_JOULE/payload->mass[0]);
+    double vNorm = sqrt(2*keV* KEV_TO_JOULE/payload->mass[0]);
     cost = 1. - 2. * rand_uniform();            // Random trajectory
     sint = sqrt((1. - cost) * (1. + cost));
     phi = 2. * M_PI * rand_uniform();
@@ -655,7 +655,7 @@ void inject_HEP(double keV, thread_data_t *payload) {
     vx = sint * cosp;                           // Random starting speed
     vy = sint * sinp;
     vz = cost;
-    
+
     fprintf(stderr, "vNorm: %le\n\n\n", vNorm);
     payload->vel[HEP][X0] = vNorm;
     payload->vel[HEP][Y0] = 0;

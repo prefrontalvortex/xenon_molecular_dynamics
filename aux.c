@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <math.h>
 #include "aux.h"
 
 void die(const char *format, ...) {
@@ -131,20 +132,26 @@ void wipe(FILE *file, int n) {
     }
 }
 
-void progress_bar(long idx, long max) {
+void progress_bar(long idx, long max, stopwatch_t *stopwatch) {
+    double elapsed = getElaspedTime(stopwatch);
     const char SPINNER[5] = "\\|/-";
     int WIDTH = 40;
     int i;
     double perc = (double) idx / (double) max;
     int fullbars = (int) (perc * WIDTH);
     int halfbar = ((int) (perc * WIDTH*2 )) - 2*fullbars;
+    double remain_sec = (elapsed / perc) * (1 - perc);
+
     wipe(stderr, 1);
     fprintf(stderr, "%c [", SPINNER[idx%4]);
     for (i = 0; i < fullbars; i++) fprintf(stderr, "=");
     if (halfbar) fprintf(stderr, "-");
     for (i = 0; i < (WIDTH-fullbars-halfbar); i++) fprintf(stderr, " ");
 
-    fprintf(stdout, "] %2.1lf%% %ld/%ld\n", perc*100, idx, max);
+    fprintf(stderr, "] % 2.1lf%% % 5ld/%ld", perc*100, idx, max);
+    fprintf(stderr, " % 3.0lf:%02.0lf|% 3.0lf:%02.0lf\n",
+            remain_sec/60, fmod(remain_sec, 60),
+            elapsed/60, fmod(elapsed, 60));
 
 }
 

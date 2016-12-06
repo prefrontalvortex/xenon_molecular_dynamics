@@ -234,7 +234,7 @@ int main(int argc, char **argv) {
                 } //F=m*a across all forces
             } //complete acceleration
         } //// loop over masses   =========== end of inner loop
-        progress_bar(i, BODIES);
+        progress_bar(i, BODIES, &timer_init);
     } // End Startup Loop - loop over masses higher-level
     double time = 0.;
     long counter = 0;
@@ -449,7 +449,7 @@ int main(int argc, char **argv) {
             } //over dims
         } //over N-bodies
         log_time_buffer[iterations][2] = getElaspedns(&timer_init);
-        progress_bar(iterations, numCycles);
+        progress_bar(iterations, numCycles, &timer_iter);
         time += dt;
         iterations++;
     } //// END WHILE MAIN LOOP =====================================================================

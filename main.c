@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
 
     parse_assign_d(&dt, "-t", args, "1e-12");
     parse_assign_d(&max, "-m", args, "1e-10");
-    parse_assign_d(&speedmax, "-s", args, "555.0");
+    parse_assign_d(&speedmax, "-s", args, "501.0");
     parse_assign_b(&clamp_norm, "-s", args, "0");
 
     parse_assign_d(&keV_collision, "-e", args, "1.0");
@@ -147,8 +147,10 @@ int main(int argc, char **argv) {
     if (NTHREADS >= 2) {
         I_D = 2;
     }
-    if (NTHREADS >= 4) {
+    if (NTHREADS == 4) {
         J_D = 2;
+    } else if (NTHREADS == 8) {
+	J_D = 4;
     }
 //    threadData = emalloc(NTHREADS * sizeof(threadData));
 //    threads = emalloc(NTHREADS * sizeof(pthread_t));
@@ -537,7 +539,7 @@ void *calc_forces(void *argt) {
         acc[i][0] = 0.;
         acc[i][1] = 0.;
         acc[i][2] = 0.;
-        for (j = (thr ^ 2); j < BODIES; j += J_D) {
+        for (j = (thr / 2); j < BODIES; j += J_D) {
             radius = 0.;
             for (k = 0; k < DIM; k++) { //// QUADRADIC *3 - commenting this out causes a 10x reduction in speed
                 delta[0] = fabs(pos[i][k] - pos[j][k]);
@@ -569,24 +571,25 @@ void *calc_forces(void *argt) {
             }
             // calculate inter-atom distance.
             if (i != j) { // disabling this block causes no real change in speed, but that may be because of NaNs
-//                if (radius < rMin[i][0] && (pos[i][X0] - pos[j][0]) > 0. && fabs(pos[i][X0]) < MAX &&
-//                    fabs(pos[j][0]) < MAX)
-//                    rMin[i][0] = radius;
-//                if (radius < rMin[i][1] && (pos[i][X0] - pos[j][0]) < 0. && fabs(pos[i][X0]) < MAX &&
-//                    fabs(pos[j][0]) < MAX)
-//                    rMin[i][1] = radius;
-//                if (radius < rMin[i][2] && (pos[i][Y0] - pos[j][1]) > 0. && fabs(pos[i][Y0]) < MAX &&
-//                    fabs(pos[j][1]) < MAX)
-//                    rMin[i][2] = radius;
-//                if (radius < rMin[i][3] && (pos[i][Y0] - pos[j][1]) < 0. && fabs(pos[i][Y0]) < MAX &&
-//                    fabs(pos[j][1]) < MAX)
-//                    rMin[i][3] = radius;
-//                if (radius < rMin[i][4] && (pos[i][Z0] - pos[j][2]) > 0. && fabs(pos[i][Z0]) < MAX &&
-//                    fabs(pos[j][2]) < MAX)
-//                    rMin[i][4] = radius;
-//                if (radius < rMin[i][5] && (pos[i][Z0] - pos[j][2]) < 0. && fabs(pos[i][Z0]) < MAX &&
-//                    fabs(pos[j][2]) < MAX)
-//                    rMin[i][5] = radius;
+                // this is important
+                if (radius < rMin[i][0] && (pos[i][X0] - pos[j][0]) > 0. && fabs(pos[i][X0]) < MAX &&
+                    fabs(pos[j][0]) < MAX)
+                    rMin[i][0] = radius;
+                if (radius < rMin[i][1] && (pos[i][X0] - pos[j][0]) < 0. && fabs(pos[i][X0]) < MAX &&
+                    fabs(pos[j][0]) < MAX)
+                    rMin[i][1] = radius;
+                if (radius < rMin[i][2] && (pos[i][Y0] - pos[j][1]) > 0. && fabs(pos[i][Y0]) < MAX &&
+                    fabs(pos[j][1]) < MAX)
+                    rMin[i][2] = radius;
+                if (radius < rMin[i][3] && (pos[i][Y0] - pos[j][1]) < 0. && fabs(pos[i][Y0]) < MAX &&
+                    fabs(pos[j][1]) < MAX)
+                    rMin[i][3] = radius;
+                if (radius < rMin[i][4] && (pos[i][Z0] - pos[j][2]) > 0. && fabs(pos[i][Z0]) < MAX &&
+                    fabs(pos[j][2]) < MAX)
+                    rMin[i][4] = radius;
+                if (radius < rMin[i][5] && (pos[i][Z0] - pos[j][2]) < 0. && fabs(pos[i][Z0]) < MAX &&
+                    fabs(pos[j][2]) < MAX)
+                    rMin[i][5] = radius;
 
 //#ifdef CHECK_FOR_CRASH
 //                        if (!radius || radius < MIN || radius > 1e100 * MAX) {

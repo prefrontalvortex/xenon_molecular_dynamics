@@ -40,7 +40,7 @@
 
 #define THRESH_DIST 1e-9
 #define CLAMP_VEL 295.0
-#define CLAMP_SPEED 500.0
+#define CLAMP_SPEED 999.0
 
 #define DIM 3
 #define FORCES 2

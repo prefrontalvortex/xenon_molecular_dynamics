@@ -119,6 +119,7 @@ int main(int argc, char **argv) {
 //        fprintf(stderr, "\n%le %le\n", dt, max);
 //    }
 
+    //// Argument Parsing ==========================
     arg_t *args = NULL;
     parser_populate(&args, argc, argv);
 
@@ -130,7 +131,7 @@ int main(int argc, char **argv) {
     parse_assign_d(&keV_collision, "-e", args, "1.0");
     parse_assign_b(&use_hep, "-e", args, "0");
     parse_assign_i(&NTHREADS, "-th", args, "4");
-
+    //// End of argument parsing =====================
 
     fprintf(stderr, "dt: %le\nmax: %le\nthreads: %d\ncollide: %d\n\n", dt, max, NTHREADS, use_hep);
     fflush(stderr);
@@ -499,9 +500,7 @@ int main(int argc, char **argv) {
     }
     avg_quad_time /= (double) iter;
     avg_post_time /= (double) iter;
-    for (i = 0; i < numCycles; i++) {
-        fprintf(file_hep, "%le\t%le\t%le\t%le\n", log_hep_buffer[i][0], log_hep_buffer[i][1], log_hep_buffer[i][2], log_hep_buffer[i][3]);
-    }
+
 
     for (i = 0; i < BODIES; i++) fprintf(file_speeds, "%lf\n", Norms[i]);
     double elapsed = getElaspedTime(&timer_iter);

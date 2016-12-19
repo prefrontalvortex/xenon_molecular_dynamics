@@ -1,0 +1,1 @@
+/usr/bin/c++    -std=c++11 -g   CMakeFiles/mol.dir/main.cpp.o CMakeFiles/mol.dir/rng.cpp.o CMakeFiles/mol.dir/main.c.o CMakeFiles/mol.dir/aux.c.o CMakeFiles/mol.dir/xspeedtest.c.o CMakeFiles/mol.dir/argparse.c.o  -o mol 

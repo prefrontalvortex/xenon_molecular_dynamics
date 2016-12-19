@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="mol"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/mike/c/xenon_molecular_dynamics/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/mike/c/xenon_molecular_dynamics/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/mike/c/xenon_molecular_dynamics/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="mol">
+				<Option output="/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/mol" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/mike/c/xenon_molecular_dynamics/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/lib/gcc/x86_64-redhat-linux/6.2.1/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-redhat-linux/6.2.1/../../../../include/c++/6.2.1"/>
+					<Add directory="/usr/lib/gcc/x86_64-redhat-linux/6.2.1/../../../../include/c++/6.2.1/x86_64-redhat-linux"/>
+					<Add directory="/usr/lib/gcc/x86_64-redhat-linux/6.2.1/../../../../include/c++/6.2.1/backward"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 mol"/>
+					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="mol/fast">
+				<Option output="/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/mol" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/mike/c/xenon_molecular_dynamics/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/lib/gcc/x86_64-redhat-linux/6.2.1/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-redhat-linux/6.2.1/../../../../include/c++/6.2.1"/>
+					<Add directory="/usr/lib/gcc/x86_64-redhat-linux/6.2.1/../../../../include/c++/6.2.1/x86_64-redhat-linux"/>
+					<Add directory="/usr/lib/gcc/x86_64-redhat-linux/6.2.1/../../../../include/c++/6.2.1/backward"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 mol/fast"/>
+					<CompileFile command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j8 -f &quot;/home/mike/c/xenon_molecular_dynamics/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/mike/c/xenon_molecular_dynamics/argparse.c">
+			<Option target="mol"/>
+		</Unit>
+		<Unit filename="/home/mike/c/xenon_molecular_dynamics/argparse.h">
+			<Option target="mol"/>
+		</Unit>
+		<Unit filename="/home/mike/c/xenon_molecular_dynamics/aux.c">
+			<Option target="mol"/>
+		</Unit>
+		<Unit filename="/home/mike/c/xenon_molecular_dynamics/aux.h">
+			<Option target="mol"/>
+		</Unit>
+		<Unit filename="/home/mike/c/xenon_molecular_dynamics/main.c">
+			<Option target="mol"/>
+		</Unit>
+		<Unit filename="/home/mike/c/xenon_molecular_dynamics/main.cpp">
+			<Option target="mol"/>
+		</Unit>
+		<Unit filename="/home/mike/c/xenon_molecular_dynamics/rng.cpp">
+			<Option target="mol"/>
+		</Unit>
+		<Unit filename="/home/mike/c/xenon_molecular_dynamics/rng.h">
+			<Option target="mol"/>
+		</Unit>
+		<Unit filename="/home/mike/c/xenon_molecular_dynamics/xspeedtest.c">
+			<Option target="mol"/>
+		</Unit>
+		<Unit filename="/home/mike/c/xenon_molecular_dynamics/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

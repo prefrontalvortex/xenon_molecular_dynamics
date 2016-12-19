@@ -137,13 +137,15 @@ void progress_bar(long idx, long max, stopwatch_t *stopwatch) {
     const char SPINNER[5] = "\\|/-";
     int WIDTH = 40;
     int i;
+    int subdiv_print = 10;
     double perc = (double) idx / (double) max;
     int fullbars = (int) (perc * WIDTH);
     int halfbar = ((int) (perc * WIDTH*2 )) - 2*fullbars;
     double remain_sec = (elapsed / perc) * (1 - perc);
 
+    if (idx % subdiv_print == 0) {
     wipe(stderr, 1);
-    fprintf(stderr, "%c [", SPINNER[idx%4]);
+    fprintf(stderr, "%c [", SPINNER[((idx/subdiv_print))%4]);
     for (i = 0; i < fullbars; i++) fprintf(stderr, "=");
     if (halfbar) fprintf(stderr, "-");
     for (i = 0; i < (WIDTH-fullbars-halfbar); i++) fprintf(stderr, " ");
@@ -152,6 +154,6 @@ void progress_bar(long idx, long max, stopwatch_t *stopwatch) {
     fprintf(stderr, " % 3.0lf:%02.0lf|% 3.0lf:%02.0lf\n",
             remain_sec/60, fmod(remain_sec, 60),
             elapsed/60, fmod(elapsed, 60));
-
+    }
 }
 

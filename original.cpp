@@ -47,10 +47,10 @@ int main(int argc, char **argv) {
 
     dt = 1e-12;
     max = 1e-10;
-//    cout << "time_step [s] = ";
-//    cin >> dt;
-//    cout << "stop-time [s] = ";
-//    cin >> max;
+    cout << "time_step [s] = ";
+    cin >> dt;
+    cout << "stop-time [s] = ";
+    cin >> max;
 
     double equil[FORCES] = {0., 0.}; // Not used here, spring equilib for springy forces
     double G_Newton[FORCES] = {-3.18e-132, 3.35e-76}; // Repulsive and attractive terms in LJ for Xenon

@@ -571,6 +571,7 @@ void *calc_forces(void *argt) {
             }
             // calculate inter-atom distance.
             if (i != j) { // disabling this block causes no real change in speed, but that may be because of NaNs
+                // this is important
                 if (radius < rMin[i][0] && (pos[i][X0] - pos[j][0]) > 0. && fabs(pos[i][X0]) < MAX &&
                     fabs(pos[j][0]) < MAX)
                     rMin[i][0] = radius;
